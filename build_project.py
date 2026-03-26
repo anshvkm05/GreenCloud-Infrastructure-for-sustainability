@@ -1,54 +1,73 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
 import joblib
 import json
 
-print("Generating synthetic Alibaba trace dataset...")
-# Generate Synthetic Data (100 servers, 192 hours = 8 days)
+print("Generating synthetic Cluster-Level dataset...")
 np.random.seed(42)
-num_servers = 100
-hours = 192
+hours = 720 # 30 days of hourly data
 
-timestamps = pd.date_range(start='2026-03-26', periods=hours, freq='H')
+timestamps = pd.date_range(start='2026-03-01', periods=hours, freq='H')
 data = []
 
-for t_idx, t in enumerate(timestamps):
-    # Simulated diurnal cycle: higher load during day, lower at night
-    hour_of_day = t.hour
-    base_load = 40 + 20 * np.sin(np.pi * (hour_of_day - 8) / 12)  # Peak around 14:00
+total_servers = 1000
+safe_capacity_limit = 0.75 # We want active servers to be at most 75% utilized
+
+for t in timestamps:
+    hour = t.hour
+    day_of_week = t.dayofweek
     
-    for machine_id in range(num_servers):
-        # Add random noise and occasional spikes
-        cpu_load = max(5, min(100, np.random.normal(base_load, 15)))
-        mem_load = max(10, min(100, cpu_load * 0.8 + np.random.normal(0, 10)))
+    # Base load logic: higher during day (8-18), lower at night. Drops on weekends (days 5, 6)
+    is_weekend = 1 if day_of_week >= 5 else 0
+    weekend_multiplier = 0.6 if is_weekend else 1.0
+    
+    # Diurnal CPU cycle (peak around 14:00)
+    base_cpu = 40 + 30 * np.sin(np.pi * (hour - 8) / 12)
+    base_cpu = max(10, base_cpu) * weekend_multiplier
+    
+    # Add noise
+    avg_cpu_load = max(5, min(95, np.random.normal(base_cpu, 5)))
+    avg_memory_load = max(10, min(90, avg_cpu_load * 0.8 + np.random.normal(0, 5)))
+    network_traffic_gbps = max(1, avg_cpu_load * 0.5 + np.random.normal(0, 2))
+    
+    # Target Logic: How many servers can we shutdown?
+    if avg_cpu_load >= safe_capacity_limit * 100:
+        safe_shutdown_count = 0
+    else:
+        # Calculate max servers we can afford to lose
+        required_servers = (total_servers * (avg_cpu_load / 100.0)) / safe_capacity_limit
+        safe_shutdown_count = max(0, total_servers - int(required_servers))
         
-        # Target variable: Is it severely underutilized? (CPU < 20%)
-        is_underutilized = 1 if cpu_load < 20 else 0
-        
-        data.append([t, f"server_{machine_id}", cpu_load, mem_load, is_underutilized])
+        # Add a small buffer so we aren't perfectly predictable (adds realism to the ML task)
+        safe_shutdown_count = max(0, safe_shutdown_count - np.random.randint(0, 20))
 
-df = pd.DataFrame(data, columns=['timestamp', 'machine_id', 'cpu_utilization', 'memory_utilization', 'is_underutilized'])
-df.to_csv("server_telemetry.csv", index=False)
-print(f"Dataset saved to server_telemetry.csv with {len(df)} records.")
+    data.append([t, hour, day_of_week, avg_cpu_load, avg_memory_load, network_traffic_gbps, safe_shutdown_count])
 
-print("Training Logistic Regression Model...")
-features = ['cpu_utilization', 'memory_utilization']
+df = pd.DataFrame(data, columns=['timestamp', 'hour_of_day', 'day_of_week', 'avg_cpu_load', 'avg_memory_load', 'network_traffic_gbps', 'safe_shutdown_count'])
+df.to_csv("cluster_telemetry.csv", index=False)
+print(f"Dataset generated with {len(df)} records.")
+
+print("Training Random Forest Regressor Model...")
+features = ['hour_of_day', 'day_of_week', 'avg_cpu_load', 'avg_memory_load', 'network_traffic_gbps']
 X = df[features]
-y = df['is_underutilized']
+y = df['safe_shutdown_count']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-model = LogisticRegression()
+
+model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# Evaluate (for notebook output)
 preds = model.predict(X_test)
-print(classification_report(y_test, preds))
+mae = mean_absolute_error(y_test, preds)
+r2 = r2_score(y_test, preds)
+print(f"MAE: {mae:.2f} servers")
+print(f"R2 Score: {r2:.4f}")
 
-joblib.dump(model, "logistic_model.pkl")
-print("Model saved to logistic_model.pkl.")
+joblib.dump(model, "rf_cluster_model.pkl")
+print("Model saved to rf_cluster_model.pkl")
 
 print("Generating model_development.ipynb...")
 notebook = {
@@ -57,10 +76,10 @@ notebook = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Eco-Scale: Predictive Energy Optimization\\n",
-    "## Alibaba Cluster Trace - Logistic Regression Model\\n",
+    "# Eco-Scale: Prediction of Safe Server Shutdowns\\n",
+    "## Time-Series & Cluster-Level Regression\\n",
     "\\n",
-    "This notebook covers the end-to-end ML lifecycle for identifying underutilized servers."
+    "Instead of predicting binary load on a single server, this notebook predicts the **exact number of servers** out of a 1000-node cluster that can be safely powered down while keeping overall capacity at a safe 75% limit."
    ]
   },
   {
@@ -72,10 +91,9 @@ notebook = {
     "import pandas as pd\\n",
     "import numpy as np\\n",
     "import plotly.express as px\\n",
-    "import plotly.graph_objects as go\\n",
     "from sklearn.model_selection import train_test_split\\n",
-    "from sklearn.linear_model import LogisticRegression\\n",
-    "from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve\\n",
+    "from sklearn.ensemble import RandomForestRegressor\\n",
+    "from sklearn.metrics import mean_absolute_error, r2_score\\n",
     "import joblib"
    ]
   },
@@ -92,8 +110,7 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "# Load the synthetic Alibaba cluster trace dataset\\n",
-    "df = pd.read_csv('server_telemetry.csv')\\n",
+    "df = pd.read_csv('cluster_telemetry.csv')\\n",
     "df['timestamp'] = pd.to_datetime(df['timestamp'])\\n",
     "df.head()"
    ]
@@ -102,7 +119,7 @@ notebook = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### 2. Exploratory Data Analysis (EDA)"
+    "### 2. Exploratory Data Analysis (EDA) & Feature Relationships"
    ]
   },
   {
@@ -111,26 +128,22 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "# Univariate Analysis\\n",
-    "fig = px.histogram(df, x='cpu_utilization', nbins=50, title='CPU Utilization Distribution')\\n",
+    "# Time-Series View of Cluster Load\\n",
+    "fig = px.line(df[:168], x='timestamp', y=['avg_cpu_load', 'safe_shutdown_count'], \\n",
+    "              title='1-Week Snapshot: Inverse Relationship between CPU Load & Servers to Shutdown')\\n",
     "fig.show()\\n",
     "\\n",
-    "# Bivariate Analysis\\n",
-    "fig2 = px.scatter(df.sample(2000, random_state=42), x='cpu_utilization', y='memory_utilization', color='is_underutilized', \\n",
-    "                 title='CPU vs Memory (Underutilization mapped)')\\n",
-    "fig2.show()\\n",
-    "\\n",
-    "# Time-series pattern (Multivariate)\\n",
-    "agg = df.groupby('timestamp').mean(numeric_only=True).reset_index()\\n",
-    "fig3 = px.line(agg, x='timestamp', y='cpu_utilization', title='Average CPU Load Over 8 Days')\\n",
-    "fig3.show()"
+    "# Correlation Heatmap\\n",
+    "corr = df.drop('timestamp', axis=1).corr()\\n",
+    "fig2 = px.imshow(corr, text_auto=True, aspect=\\\"auto\\\", title=\\\"Feature Correlation Heatmap\\\")\\n",
+    "fig2.show()"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### 3. Data Preprocessing & Model Selection"
+    "### 3. Model Training (Random Forest Regressor)"
    ]
   },
   {
@@ -139,19 +152,21 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "X = df[['cpu_utilization', 'memory_utilization']]\\n",
-    "y = df['is_underutilized']\\n",
+    "features = ['hour_of_day', 'day_of_week', 'avg_cpu_load', 'avg_memory_load', 'network_traffic_gbps']\\n",
+    "X = df[features]\\n",
+    "y = df['safe_shutdown_count']\\n",
     "\\n",
     "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\\n",
     "\\n",
-    "print(f\\\"Training set: {X_train.shape}, Test set: {X_test.shape}\\\")"
+    "model = RandomForestRegressor(n_estimators=100, random_state=42)\\n",
+    "model.fit(X_train, y_train)"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### 4. Model Training"
+    "### 4. Evaluation & Feature Importance"
    ]
   },
   {
@@ -160,15 +175,24 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "model = LogisticRegression(class_weight='balanced')\\n",
-    "model.fit(X_train, y_train)"
+    "preds = model.predict(X_test)\\n",
+    "print(f\\\"Mean Absolute Error (MAE): {mean_absolute_error(y_test, preds):.2f} servers\\\")\\n",
+    "print(f\\\"R^2 Score: {r2_score(y_test, preds):.4f}\\\")\\n",
+    "\\n",
+    "importances = pd.DataFrame({\\n",
+    "    'Feature': features,\\n",
+    "    'Importance': model.feature_importances_\\n",
+    "}).sort_values(by='Importance', ascending=False)\\n",
+    "\\n",
+    "fig3 = px.bar(importances, x='Importance', y='Feature', orientation='h', title='Feature Importance in Random Forest Model')\\n",
+    "fig3.show()"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### 5. Model Evaluation"
+    "### 5. Model Saving"
    ]
   },
   {
@@ -177,67 +201,8 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "preds = model.predict(X_test)\\n",
-    "probs = model.predict_proba(X_test)[:, 1]\\n",
-    "\\n",
-    "print(\\\"Classification Report:\\\")\\n",
-    "print(classification_report(y_test, preds))\\n",
-    "\\n",
-    "print(f\\\"ROC-AUC Score: {roc_auc_score(y_test, probs):.4f}\\\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### 6. Model Optimization & Tuning\\n",
-    "*(Optional space for GridSearch if requested)*\\n",
-    "We use class_weight='balanced' to naturally manage any class imbalance."
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### 7. Model Saving"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 7,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "joblib.dump(model, 'logistic_model_notebook.pkl')\\n",
-    "print(\\\"Model successfully saved.\\\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### 8. Sample API Usage Test"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 8,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "def query_model(cpu, mem):\\n",
-    "    loaded_model = joblib.load('logistic_model_notebook.pkl')\\n",
-    "    sample = pd.DataFrame({'cpu_utilization': [cpu], 'memory_utilization': [mem]})\\n",
-    "    prediction = loaded_model.predict(sample)[0]\\n",
-    "    prob = loaded_model.predict_proba(sample)[0][1]\\n",
-    "    if prediction == 1:\\n",
-    "        return f\\\"SHUTDOWN RECOMMENDED (Confidence: {prob:.2f})\\\"\\n",
-    "    return f\\\"KEEP ACTIVE (Confidence: {1 - prob:.2f})\\\"\\n",
-    "\\n",
-    "# Test an idle machine\\n",
-    "print(\\\"Test Idle:\\\", query_model(cpu=15, mem=45))\\n",
-    "# Test an active machine\\n",
-    "print(\\\"Test Active:\\\", query_model(cpu=80, mem=70))"
+    "joblib.dump(model, 'rf_cluster_model_notebook.pkl')\\n",
+    "print(\\\"Model saved successfully.\\\")"
    ]
   }
  ],
