@@ -56,7 +56,7 @@ st.sidebar.markdown("Predictive **Cluster-Level** Energy Optimization.")
 st.sidebar.header("Infrastructure Specs")
 total_servers = st.sidebar.slider("Total Servers in Cluster", min_value=100, max_value=10000, value=1000, step=100)
 power_per_server = st.sidebar.number_input("Avg Power per Server (Watts)", value=400)
-electricity_cost = st.sidebar.number_input("Electricity Cost ($/kWh)", value=0.12)
+electricity_cost = st.sidebar.number_input("Electricity Cost (₹/kWh)", value=0.12)
 carbon_intensity = st.sidebar.number_input("Carbon Intensity (kg CO2/kWh)", value=0.45)
 
 st.sidebar.markdown("---")
@@ -86,7 +86,7 @@ with col1:
 with col2:
     st.markdown(f'<div class="metric-card"><div class="metric-title">Safely Idle Servers</div><div class="metric-value">{current_predicted_shutdowns}</div></div>', unsafe_allow_html=True)
 with col3:
-    st.markdown(f'<div class="metric-card"><div class="metric-title">Est. Savings/Month</div><div class="metric-value">${monthly_money_saved:,.0f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card"><div class="metric-title">Est. Savings/Month</div><div class="metric-value">₹{monthly_money_saved:,.0f}</div></div>', unsafe_allow_html=True)
 with col4:
     st.markdown(f'<div class="metric-card"><div class="metric-title">CO₂ Avoided/Month</div><div class="metric-value">{monthly_co2_saved_kg/1000:,.1f} Tons</div></div>', unsafe_allow_html=True)
 
