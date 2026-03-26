@@ -143,7 +143,7 @@ with col_main:
 
 with col_result:
     st.markdown('<div class="unique-feature">', unsafe_allow_html=True)
-    if st.button("Query Random Forest Model", use_container_width=True):
+    if st.button("Predict Optimal Shutdowns", use_container_width=True):
         with st.spinner("Analyzing high-dimensional cluster space..."):
             time.sleep(0.5) 
             
@@ -166,6 +166,7 @@ with col_result:
             else:
                 st.error(f"**Action:** DO NOT SHUTDOWN")
                 st.write(f"All {total_servers} servers are required to handle this peak load securely without bottlenecking.")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("---")
