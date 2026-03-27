@@ -18,7 +18,7 @@ A full-stack machine learning solution to digitize and automate server consolida
 - **Real-Time ROI Calculator** — Instantly calculates monetary savings ($/month) and carbon offsets (Tons of CO2/month) based on live AI predictions.
 - **AI Action Center** — A physical slider interface allowing users to query the Random Forest model interactively.
 
-### FastAPI Backend (API Layer)
+### FastAPI Backend (API Layer) for Third party use
 - **High-Performance Serving** — Powered by Uvicorn and FastAPI.
 - **Pydantic Validation** — Strict type-checking and logical bounds checking (e.g., CPU cannot exceed 100%) preventing bad telemetry from crashing the ML model.
 - **Interactive Swagger Docs** — Auto-generated OpenAPI documentation for instant testing and third-party integration.
@@ -41,7 +41,7 @@ A full-stack machine learning solution to digitize and automate server consolida
 ```text
 eco-scale/
 ├── app.py                       # Streamlit UI Dashboard
-├── api.py                       # FastAPI Backend endpoints
+├── api.py                       # FastAPI Backend endpoints for third party to intergrate our API
 ├── build_project.py             # Data synthesis & ML Model training script
 ├── test_api.py                  # Automated Requests testing script
 ├── requirements.txt             # Python dependencies
@@ -83,9 +83,9 @@ python build_project.py
 ```
 
 **4. Start the Application & Server**
-You can run the Frontend and the Backend in two separate terminal windows:
-- **Frontend:** `streamlit run app.py`
-- **Backend:** `uvicorn api:app --reload`
+You can run the the application from below two command:
+- **Frontend + Backend (Single File):** `streamlit run app.py`
+- **Backend (For Integrate the API in your Application):** `uvicorn api:app --reload`
 
 ---
 
