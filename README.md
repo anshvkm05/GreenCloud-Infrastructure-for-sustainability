@@ -20,7 +20,7 @@ Instead of reactively scaling *after* a load spike, Eco-Scale uses predictive ma
 1. **The Data Engine:** Synthesized based on the highly granular **Alibaba Cluster Trace Program**. It generates 30 days of hourly telemetry for a scalable server cluster, mapping diurnal patterns and network traffic.
 2. **The ML Model (`rf_cluster_model.pkl`):** A Random Forest Regressor trained to predict the *exact subset* of servers that can be safely powered down while maintaining a strict 75% capacity threshold for the remaining active fleet.
 3. **The API Layer (`api.py`):** A robust FastAPI backend allowing third-party orchestrators (like Kubernetes) to query the model programmatically and receive JSON actions.
-4. **The UI Dashboard (`app.py`):** An aesthetically stunning, interactive Streamlit front-end. It features live telemetry charts, dynamic cluster-size scaling, and an interactive "AI Action Center" for real-time inference.
+4. **The UI Dashboard (`app.py`):** An interactive Streamlit front-end. It features live telemetry charts, dynamic cluster-size scaling, and an interactive "AI Action Center" for real-time inference.
 
 ---
 
