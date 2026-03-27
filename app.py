@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import joblib
 import time
 from datetime import datetime
+import whatsapp
 
 # --- Configuration & Styling ---
 st.set_page_config(page_title="Eco-Scale Dashboard", page_icon="🍃", layout="wide", initial_sidebar_state="expanded")
@@ -58,6 +59,10 @@ total_servers = st.sidebar.slider("Total Servers in Cluster", min_value=100, max
 power_per_server = st.sidebar.number_input("Avg Power per Server (Watts)", value=400)
 electricity_cost = st.sidebar.number_input("Electricity Cost (₹/kWh)", value=0.12)
 carbon_intensity = st.sidebar.number_input("Carbon Intensity (kg CO2/kWh)", value=0.45)
+
+st.sidebar.markdown("---")
+st.sidebar.header("Notifications")
+phone_number = st.sidebar.text_input("WhatsApp Number", value="", placeholder="+1234567890", help="Requires Country Code")
 
 st.sidebar.markdown("---")
 st.sidebar.info("Model: Random Forest Regressor 🌲")
@@ -161,12 +166,29 @@ with col_result:
             active_servers = total_servers - pred_shutdowns
             
             if pred_shutdowns > 0:
-                st.success(f"**Action:** Shutdown {pred_shutdowns} Servers")
+                action_title = f"Shutdown {pred_shutdowns} Servers"
+                action_desc = f"Leave {active_servers} servers running. The cluster will safely handle the current {sim_cpu}% CPU load under the 75% capacity threshold limit."
+                st.success(f"**Action:** {action_title}")
                 st.write(f"Leave **{active_servers}** servers running. The cluster will safely handle the current {sim_cpu}% CPU load under the 75% capacity threshold limit.")
             else:
-                st.error(f"**Action:** DO NOT SHUTDOWN")
+                action_title = "DO NOT SHUTDOWN"
+                action_desc = f"All {total_servers} servers are required to handle this peak load securely without bottlenecking."
+                st.error(f"**Action:** {action_title}")
                 st.write(f"All {total_servers} servers are required to handle this peak load securely without bottlenecking.")
-
+                
+            if phone_number:
+                try:
+                    whatsapp.send_prediction_alert(
+                        phone_number=phone_number,
+                        sim_cpu=sim_cpu,
+                        sim_mem=sim_mem,
+                        sim_net=sim_net,
+                        action_title=action_title,
+                        action_desc=action_desc
+                    )
+                    st.toast("WhatsApp alert triggered!")
+                except Exception as e:
+                    st.error(f"Failed to send WhatsApp alert: {e}")
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("---")
