@@ -21,7 +21,8 @@ if not light_mode:
         /* Hide Streamlit Clutter */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
+        /* Restored header to keep sidebar toggle button, safely hiding the deploy button instead */
+        .stDeployButton {display:none;}
         
         /* App Background */
         .stApp { background-color: #0d1117; color: #c9d1d9; }
@@ -37,6 +38,7 @@ if not light_mode:
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             position: relative;
             overflow: hidden;
+            height: 100%;
         }
         
         .metric-card:hover { 
@@ -46,7 +48,7 @@ if not light_mode:
         }
 
         .metric-value { font-size: 38px; font-weight: bold; color: #ffffff; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .metric-title { font-size: 13px; color: #20c997; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .metric-title { font-size: 13px; color: #20c997; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; line-height: 1.2; }
         h1, h2, h3 { color: #58a6ff; }
         
         /* Unique Feature Box */
@@ -118,7 +120,8 @@ else:
         /* Hide Streamlit Clutter */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
+        /* Restored header to keep sidebar toggle button, safely hiding the deploy button instead */
+        .stDeployButton {display:none;}
 
         /* App Background */
         .stApp { background-color: #f6f8fa; color: #24292f; }
@@ -134,6 +137,7 @@ else:
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             position: relative;
             overflow: hidden;
+            height: 100%;
         }
         
         .metric-card:hover { 
@@ -143,7 +147,7 @@ else:
         }
         
         .metric-value { font-size: 38px; font-weight: bold; color: #24292f; text-shadow: 0 0 10px rgba(0,0,0,0.05); }
-        .metric-title { font-size: 13px; color: #20c997; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .metric-title { font-size: 13px; color: #20c997; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; line-height: 1.2;}
         h1, h2, h3 { color: #0969da; }
         
         /* Unique Feature Box */
@@ -245,11 +249,10 @@ with st.sidebar.expander("📱 Notifications"):
         phone_number = st.text_input("WhatsApp Number", value="", placeholder="+1234567890", help="Must include the country code without spaces (e.g., +91).")
 
 st.sidebar.markdown("---")
-st.sidebar.info("Model: Random Forest Regressor 🌲")
-st.sidebar.info("Target: Dynamic Scale Extrapolation")
+st.sidebar.info("Model: Random Forest AI 🌲")
 
 if df.empty or model is None:
-    st.warning("Data or model not found. Please run `python build_project.py` to train the new Random Forest cluster model.")
+    st.warning("Data or model not found. Please run your setup scripts.")
     st.stop()
 
 
@@ -261,6 +264,8 @@ power_saved_kw = (current_predicted_shutdowns * power_per_server) / 1000
 daily_savings_kwh = power_saved_kw * 24
 monthly_money_saved = daily_savings_kwh * 30 * electricity_cost
 monthly_co2_saved_kg = daily_savings_kwh * 30 * carbon_intensity
+monthly_kwh_saved = daily_savings_kwh * 30
+monthly_water_saved_liters = monthly_kwh_saved * 1.8 # WUE average approximation
 
 # Initialize State for AI Simulator
 if 'sim_results' not in st.session_state:
@@ -271,24 +276,24 @@ tab_sim, tab_live, tab_help = st.tabs(["🔮 AI Simulator", "📊 Live Telemetry
 
 with tab_sim:
     st.markdown("<h2 style='color: #20c997; font-weight: 800;'>Eco-Scale Intelligence Center</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #8b949e; margin-bottom: 30px;'>Real-time infrastructure telemetry and predictive capability optimization dashboard.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #8b949e; margin-bottom: 30px;'>Tell us how busy the servers are right now. Our AI will calculate exactly how many servers we can safely turn off to save energy, without slowing anything down.</p>", unsafe_allow_html=True)
 
     with st.form("simulation_form"):
         col1, col2, col3 = st.columns(3)
         with col1:
-            sim_hour = st.slider("Hour of Day (0-23)", 0, 23, 14, help="Peak hours generally have less suspensible servers.")
-            sim_day = st.slider("Day of Week (0-6)", 0, 6, 2, help="0=Monday, 6=Sunday. Weekends typically allow more scaling.")
+            sim_hour = st.slider("Time of Day (0-23)", 0, 23, 14, help="What time is it right now? Servers are usually less busy at night.")
+            sim_day = st.slider("Day of the Week (0-6)", 0, 6, 2, help="0 is Monday, 6 is Sunday. Weekends usually mean fewer people using the servers.")
         with col2:
-            sim_cpu = st.slider("Avg CPU Load (%)", 0, 100, 35, help="Target processing volume.")
-            sim_mem = st.slider("Avg Memory Load (%)", 0, 100, 45, help="Target memory volume.")
+            sim_cpu = st.slider("Current Processing Load (%)", 0, 100, 35, help="How hard are the servers 'thinking' right now?")
+            sim_mem = st.slider("Current Memory Usage (%)", 0, 100, 45, help="How much data are the servers actively holding?")
         with col3:
-            sim_net = st.slider("Network Traffic (Gbps)", 0.0, 100.0, 18.5, help="High bandwidth spikes limit potential server shutdowns.")
+            sim_net = st.slider("Current Internet Traffic (Gbps)", 0.0, 100.0, 18.5, help="How much data is flowing into the servers right now?")
         
         st.markdown("<br>", unsafe_allow_html=True)
         submit = st.form_submit_button("Initialize Forecasting Engine", type="primary", use_container_width=True)
 
     if submit:
-        with st.spinner("Analyzing high-dimensional cluster space..."):
+        with st.spinner("Analyzing current server state..."):
             time.sleep(0.5) 
             
             features = pd.DataFrame({
@@ -308,12 +313,16 @@ with tab_sim:
             sim_daily_savings_kwh = sim_power_saved_kw * 24
             sim_monthly_money_saved = sim_daily_savings_kwh * 30 * electricity_cost
             sim_monthly_co2_saved_kg = sim_daily_savings_kwh * 30 * carbon_intensity
+            sim_monthly_kwh_saved = sim_daily_savings_kwh * 30
+            sim_monthly_water_saved_liters = sim_monthly_kwh_saved * 1.8
 
             st.session_state.sim_results = {
                 'active': active_servers,
                 'suspendable': pred_shutdowns,
                 'savings': sim_monthly_money_saved,
-                'carbon': sim_monthly_co2_saved_kg
+                'carbon': sim_monthly_co2_saved_kg,
+                'electricity': sim_monthly_kwh_saved,
+                'water': sim_monthly_water_saved_liters
             }
             
             if phone_number and pred_shutdowns > 0:
@@ -324,7 +333,7 @@ with tab_sim:
                         sim_mem=sim_mem,
                         sim_net=sim_net,
                         action_title=f"Shutdown {pred_shutdowns} Servers",
-                        action_desc=f"Leave {active_servers} servers running. Safe under current {sim_cpu}% CPU load."
+                        action_desc=f"{active_servers} servers are enough to handle current internet traffic safely."
                     )
                     st.toast("WhatsApp alert triggered!")
                 except Exception as e:
@@ -334,34 +343,55 @@ with tab_sim:
         res = st.session_state.sim_results
         
         st.markdown("<br>", unsafe_allow_html=True)
-        sc1, sc2, sc3, sc4 = st.columns(4)
+        
+        # Row 1 of Metric Cards
+        sc1, sc2, sc3 = st.columns(3)
         with sc1:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">ACTIVE FLEET</div><div class="metric-value">{res["active"]:,}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card"><div class="metric-title">SERVERS REQUIRED TO RUN</div><div class="metric-value">{res["active"]:,}</div></div>', unsafe_allow_html=True)
         with sc2:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">SAFELY SUSPENDED (SIM)</div><div class="metric-value">{res["suspendable"]:,}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card"><div class="metric-title">SERVERS WE CAN TURN OFF</div><div class="metric-value">{res["suspendable"]:,}</div></div>', unsafe_allow_html=True)
         with sc3:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">PROJECTED OPEX SAVINGS (SIM)</div><div class="metric-value">₹{res["savings"]:,.0f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card"><div class="metric-title">MONEY SAVED (EST. MONTHLY)</div><div class="metric-value">₹{res["savings"]:,.0f}</div></div>', unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Row 2 of Metric Cards (Sustainability)
+        sc4, sc5, sc6 = st.columns(3)
         with sc4:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">CARBON AVOIDANCE RATE (SIM)</div><div class="metric-value">{res["carbon"]/1000:,.1f} Tons</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card"><div class="metric-title">CO₂ EMISSIONS AVOIDED</div><div class="metric-value">{res["carbon"]/1000:,.1f} Tons</div></div>', unsafe_allow_html=True)
+        with sc5:
+            st.markdown(f'<div class="metric-card"><div class="metric-title">ELECTRICITY SAVED</div><div class="metric-value">{res["electricity"]:,.0f} kWh</div></div>', unsafe_allow_html=True)
+        with sc6:
+            st.markdown(f'<div class="metric-card"><div class="metric-title">WATER SAVED (COOLING)</div><div class="metric-value">{res["water"]:,.0f} Liters</div></div>', unsafe_allow_html=True)
 
 
 with tab_live:
     # --- Top Metrics Row ---
-    st.subheader("Current Cluster Snapshot")
-    col1, col2, col3, col4 = st.columns(4)
+    st.markdown("<h2 style='color: #20c997; font-weight: 800;'>Current Operations Snapshot</h2>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">TOTAL CLUSTER SIZE</div><div class="metric-value">{total_servers:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">SERVERS RUNNING NOW</div><div class="metric-value">{total_servers:,}</div></div>', unsafe_allow_html=True)
     with col2:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">SAFELY IDLE SERVERS</div><div class="metric-value">{current_predicted_shutdowns:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">SERVERS WE CAN TURN OFF</div><div class="metric-value">{current_predicted_shutdowns:,}</div></div>', unsafe_allow_html=True)
     with col3:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">EST. SAVINGS/MONTH</div><div class="metric-value">₹{monthly_money_saved:,.0f}</div></div>', unsafe_allow_html=True)
-    with col4:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">CO₂ AVOIDED/MONTH</div><div class="metric-value">{monthly_co2_saved_kg/1000:,.1f} Tons</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-title">MONEY SAVED (EST. MONTHLY)</div><div class="metric-value">₹{monthly_money_saved:,.0f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        st.markdown(f'<div class="metric-card"><div class="metric-title">CO₂ EMISSIONS AVOIDED</div><div class="metric-value">{monthly_co2_saved_kg/1000:,.1f} Tons</div></div>', unsafe_allow_html=True)
+    with col5:
+        st.markdown(f'<div class="metric-card"><div class="metric-title">ELECTRICITY SAVED</div><div class="metric-value">{monthly_kwh_saved:,.0f} kWh</div></div>', unsafe_allow_html=True)
+    with col6:
+        st.markdown(f'<div class="metric-card"><div class="metric-title">WATER SAVED (COOLING)</div><div class="metric-value">{monthly_water_saved_liters:,.0f} Liters</div></div>', unsafe_allow_html=True)
+
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
     # --- Charts ---
-    st.subheader("7-Day Cluster Telemetry & Optimization Potential")
+    st.subheader("7-Day Historic Report: Where We Can Save More")
 
     # Show last 168 hours (7 days)
     plot_df = df.tail(168).copy()
@@ -372,13 +402,13 @@ with tab_live:
     # Add CPU Line
     fig.add_trace(go.Scatter(
         x=plot_df['timestamp'], y=plot_df['avg_cpu_load'], 
-        mode='lines', name='Avg CPU Load (%)', line=dict(color='#0969da' if light_mode else '#58a6ff', width=3), yaxis='y1'
+        mode='lines', name='Server Load (%)', line=dict(color='#0969da' if light_mode else '#58a6ff', width=3), yaxis='y1'
     ))
 
     # Add Safe Shutdown Count as bars
     fig.add_trace(go.Bar(
         x=plot_df['timestamp'], y=plot_df['safe_shutdown_count'], 
-        name='Servers Powered Down', marker_color='#2ea043', opacity=0.5, yaxis='y2'
+        name='Servers Turned Off', marker_color='#20c997', opacity=0.5, yaxis='y2'
     ))
 
     bg_color = 'rgba(0,0,0,0)' # Transparent Plotly BG to match Glass UI
@@ -387,8 +417,8 @@ with tab_live:
 
     fig.update_layout(
         plot_bgcolor=bg_color, paper_bgcolor=bg_color, font_color=font_color,
-        yaxis=dict(title='Cluster CPU Load (%)', range=[0, 100], gridcolor=grid_color),
-        yaxis2=dict(title='Servers Shutdown Count', overlaying='y', side='right', range=[0, total_servers], showgrid=False),
+        yaxis=dict(title='Server Load (%)', range=[0, 100], gridcolor=grid_color),
+        yaxis2=dict(title='Servers Powered Down', overlaying='y', side='right', range=[0, total_servers], showgrid=False),
         xaxis=dict(gridcolor=grid_color),
         hovermode="x unified", margin=dict(l=0, r=0, t=30, b=0),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
@@ -400,24 +430,24 @@ with tab_help:
     st.markdown("""
     ## ℹ️ Project Context & Help
 
-    Welcome to **Eco-Scale**, an intelligent infrastructure scaling platform developed to reduce scope-2 carbon emissions by dynamically shutting down redundant data-center elements during periods of low activity.
+    Welcome to **Eco-Scale**, an intelligent platform developed to reduce carbon emissions by dynamically shutting down redundant data-center elements during periods of low activity.
 
     ### 🔗 GitHub Repository
     * **URL**: [Green-cloud-Infrastructure-for-sustainability](https://github.com/anshvkm05/GreenCloud-Infrastructure-for-sustainability)
     
     ### ⭐ Core Features
-    - **Telemetry Analysis**: Uses a Random Forest Regressor to predict the upper bounds of safe cluster suspension.
-    - **Capacity Safeguards**: Hard limits ensure cluster utilization never breaches thresholds, maintaining performance.
-    - **Cost & Carbon Extrapolation**: Real-time calculus of ROI and sustainability impact.
-    - **WhatsApp Automated Ops**: API-driven notification pipeline for immediate human-in-the-loop intervention.
+    - **Telemetry Analysis**: Uses an AI model to predict when we can safely turn off servers without slowing down websites.
+    - **Capacity Safeguards**: Hard limits ensure cluster utilization never breaches thresholds, guaranteeing no lag for your users.
+    - **WhatsApp Automated Ops**: Immediate notifications sent directly to a manager's phone when high savings are possible.
 
-    ### 🧮 How Savings are Calculated
-    - **Power Consumption** = `Suspendable Servers × Power/Server`
-    - **Money Saved** = `Power Saved (kW) × 24h × 30d × Electricity Cost/kWh`
-    - **Carbon Avoided** = `Power Saved (kW) × 24h × 30d × Carbon Intensity (kg CO₂/kWh)`
+    ### 💧 The Hidden Cost: Water and Electricity
+    Data centers require massive amounts of electricity to run, and huge amounts of clean water for their cooling towers so they don't overheat. By shutting down inactive servers, we don't just save money—we actively conserve vital global resources.
 
-    ### 🛠️ Troubleshooting & Model Info
-    If predictions skew, verify the model input schemas in `cluster_telemetry.csv` and retrain using `build_project.py`. The machine learning algorithm correlates temporal structures (time-of-day, day-of-week) against cluster pressure variables (CPU, Memory, Network) to interpolate secure suspension counts.
+    ### 🧮 How Savings are Calculated (For the Curious)
+    - **Electricity Saved** = `Servers Turned Off × Average Server Power`
+    - **Money Saved** = `Electricity Saved × Utility Cost`
+    - **CO₂ Emissions Avoided** = `Electricity Saved × Grid Carbon Intensity`
+    - **Water Saved** = `Electricity Saved × 1.8 Liters (Average Water Usage Effectiveness)`
     """)
 
 st.markdown("---")
