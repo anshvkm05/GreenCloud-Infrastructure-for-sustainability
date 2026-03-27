@@ -28,3 +28,13 @@ Time: 10:11
 Phone Number: +7208593024
 Message: 🌍 *Eco-Scale Alert*📊 *Live Telemetry:*• CPU Load: 57%• Mem Load: 45%• Network Traffic: 18.5 Gbps✅ *Predicted Action:*_Shutdown 232 Servers_Leave 768 servers running. The cluster will safely handle the current 57% CPU load under the 75% capacity threshold limit.🤖 _Powered by the Eco-Scale Random Forest Classifier_
 --------------------
+Date: 27/3/2026
+Time: 10:20
+Phone Number: +7208593024
+Message: 🌍 *Eco-Scale Alert*📊 *Live Telemetry:*• CPU Load: 84%• Mem Load: 45%• Network Traffic: 18.5 Gbps✅ *Predicted Action:*_Shutdown 1 Servers_Leave 999 servers running. The cluster will safely handle the current 84% CPU load under the 75% capacity threshold limit.🤖 _Powered by the Eco-Scale Random Forest Classifier_
+--------------------
+Date: 27/3/2026
+Time: 10:21
+Phone Number: +7208593024
+Message: 🌍 *Eco-Scale Alert*📊 *Live Telemetry:*• CPU Load: 18%• Mem Load: 45%• Network Traffic: 18.5 Gbps✅ *Predicted Action:*_Shutdown 757 Servers_Leave 243 servers running. The cluster will safely handle the current 18% CPU load under the 75% capacity threshold limit.🤖 _Powered by the Eco-Scale Random Forest Classifier_
+--------------------
