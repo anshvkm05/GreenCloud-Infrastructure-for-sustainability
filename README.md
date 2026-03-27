@@ -1,12 +1,16 @@
 # 🍃 Eco-Scale - Predictive Energy Optimization for Cloud Infrastructure
 
 A full-stack machine learning solution to digitize and automate server consolidation in massive data centers. Built with **Python + FastAPI + Streamlit + Scikit-Learn**.
+---
+
 <img width="1919" height="957" alt="Screenshot 2026-03-27 141114" src="https://github.com/user-attachments/assets/b81f8eaf-3144-46d5-af70-93db1a4fa891" />
+
 HomePage 
 
 <img width="1919" height="955" alt="Screenshot 2026-03-27 141148" src="https://github.com/user-attachments/assets/7320d621-16e2-46be-8135-c5b3e29eff1d" />
 
 Live Telemetry Page
+
 ---
 
 
