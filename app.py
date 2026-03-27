@@ -62,7 +62,10 @@ carbon_intensity = st.sidebar.number_input("Carbon Intensity (kg CO2/kWh)", valu
 
 st.sidebar.markdown("---")
 st.sidebar.header("Notifications")
-phone_number = st.sidebar.text_input("WhatsApp Number", value="", placeholder="+1234567890", help="Requires Country Code")
+enable_whatsapp = st.sidebar.checkbox("Enable WhatsApp Notifications")
+phone_number = ""
+if enable_whatsapp:
+    phone_number = st.sidebar.text_input("WhatsApp Number", value="", placeholder="+1234567890", help="Requires Country Code")
 
 st.sidebar.markdown("---")
 st.sidebar.info("Model: Random Forest Regressor 🌲")
